@@ -5,12 +5,22 @@ data = load_all_data(DATA_DIR);
 function data = load_all_data(data_dir)
     files = dir(data_dir + "\*group*.csv");
     
-    data = cell2table(cell(0,16), 'VariableNames', {'TotalTime_hrs_', 'TotalCycles', 'Step', 'Position_Linear_10_0_0_2_0__Position__mm_', 'Load_Linear_10_0_0_2_0__Load__N_', 'Displacement_Linear_10_0_0_2_0__DigitalPosition__mm_', 'SpecimenHeight_mm_', 'DerivedDiscHeight_mm_', 'DeltaH_mm_', 'DiscStress_MPa_', 'DiscStrain', 'state', 'tail' ,'disc_id', 'disc_index', 'group_id'});
+    data = cell2table(cell(0,17), 'VariableNames', {'TotalTime_hrs_', 'TotalCycles', 'Step', 'Position_Linear_10_0_0_2_0__Position__mm_', 'Load_Linear_10_0_0_2_0__Load__N_', 'Displacement_Linear_10_0_0_2_0__DigitalPosition__mm_', 'SpecimenHeight_mm_', 'DerivedDiscHeight_mm_', 'DeltaH_mm_', 'DiscStress_MPa_', 'DiscStrain', 'state', 'tail' ,'disc_id', 'disc_index', 'group_id', 'run_id'});
     
+    progress_bar = waitbar(0, "Loading data files");
     for file_index = 1:length(files)
+        progress = file_index / length(files);
+        waitbar(progress, progress_bar, "Loading data files")
         disc_data = load_file(files(file_index));
         data = [data; disc_data]; 
     end
+    close(progress_bar);
+    data.state = categorical(data.state);
+    data.tail= categorical(data.tail);
+    data.disc_id = categorical(data.disc_id);
+    data.disc_index = categorical(data.disc_index);
+    data.group_id = categorical(data.group_id);
+    data.run_id = categorical(data.run_id);
 end
 
 function disc_data = load_file(file)
@@ -21,6 +31,7 @@ function disc_data = load_file(file)
         disc_data.("disc_id") = repmat(disc_info(3), size(disc_data,1), 1);
         disc_data.("disc_index") = repmat(disc_info(4), size(disc_data,1), 1);
         disc_data.("group_id") = repmat(disc_info(5), size(disc_data,1), 1);
+        disc_data.("run_id") = strcat(disc_data.disc_id, disc_data.state);
 end
 
 function disc_info = process_filename(filename)
