@@ -1,0 +1,74 @@
+DATA_DIR = "C:\Users\George Sykes\OneDrive - University of Leeds\Documents\year 4\project\group work\Previous data analysis\Previous Data from Leeds\bovine disc tests\*\Extract cyclic data";
+
+data = load_all_data(DATA_DIR);
+
+function data = load_all_data(data_dir)
+    files = dir(data_dir + "\*group*.csv");
+    
+    data_array = get_array_of_tables(files);
+    
+    data = vertcat(data_array{:});
+
+    data.state = categorical(data.state);
+    data.tail= categorical(data.tail);
+    data.disc_id = categorical(data.disc_id);
+    data.disc_index = categorical(data.disc_index);
+    data.group_id = categorical(data.group_id);
+    data.run_id = categorical(data.run_id);
+
+    data = renamevars(data, ["Delta h (mm)", "Derived disc height (mm)", "Disc strain", "Disc stress (MPa)", "Displacement(Linear (10.0.0.2 : 0):Digital Position) (mm)", "Load(Linear (10.0.0.2 : 0):Load) (N)", "Position(Linear (10.0.0.2 : 0):Position) (mm)", "Specimen height (mm)", "Total Cycles", "Total time (hrs)"], ["delta_height", "derived_height", "disc_strain", "disc_stress", "displacement_linear", "load_linear", "position_linear", "specimen_height", "total_cycles", "time"]);
+end
+
+function data_array = get_array_of_tables(files)
+    data_array = cell(1, length(files));
+
+    progress_bar = waitbar(0, "Loading data files");
+    for file_index = 1:length(files)
+        progress = file_index / length(files);
+        waitbar(progress, progress_bar, "Loading data files")
+        disc_data = load_file(files(file_index));
+        data_array{file_index} = disc_data; 
+    end
+    close(progress_bar);
+end
+
+function disc_data = load_file(file)
+        disc_info = process_filename(file.name);
+        disc_data = readtable(strcat(file.folder + "\" + file.name), VariableNamingRule="preserve");
+        disc_data.("tail") = repmat(disc_info(1), size(disc_data,1), 1);
+        disc_data.("state") = repmat(disc_info(2), size(disc_data,1), 1);
+        disc_data.("disc_id") = repmat(disc_info(3), size(disc_data,1), 1);
+        disc_data.("disc_index") = repmat(disc_info(4), size(disc_data,1), 1);
+        disc_data.("group_id") = repmat(disc_info(5), size(disc_data,1), 1);
+        disc_data.("run_id") = strcat(disc_data.disc_id, disc_data.state);
+end
+
+function disc_info = process_filename(filename)
+    disc_info = {};
+    data = split(filename, ["-", "_", "."]);
+    disc_info(1) = cellstr(data{1});
+    disc_info(2) = cellstr(get_state_from_name_part(data));
+    disc_info(3) = cellstr(get_disc_id_from_name(data));
+    disc_info(4) = cellstr(get_disc_index_from_name(data));
+    disc_info(5) = cellstr(get_group_from_name(data));
+    return
+end
+
+function state = get_state_from_name_part(name)
+    state = name{2}(end);
+    return
+end
+
+function disc_id = get_disc_id_from_name(name)
+    disc_id = strcat(name{1}, name{2}(1:2));
+    return
+end
+
+function disc_index = get_disc_index_from_name(name)
+    disc_index = name{2}(2);
+    return
+end
+
+function disc_name = get_group_from_name(name)
+    disc_name = name{3}(end);
+end
