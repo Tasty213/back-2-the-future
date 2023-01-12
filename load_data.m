@@ -5,27 +5,36 @@ data = load_all_data(DATA_DIR);
 function data = load_all_data(data_dir)
     files = dir(data_dir + "\*group*.csv");
     
-    data = cell2table(cell(0,17), 'VariableNames', {'TotalTime_hrs_', 'TotalCycles', 'Step', 'Position_Linear_10_0_0_2_0__Position__mm_', 'Load_Linear_10_0_0_2_0__Load__N_', 'Displacement_Linear_10_0_0_2_0__DigitalPosition__mm_', 'SpecimenHeight_mm_', 'DerivedDiscHeight_mm_', 'DeltaH_mm_', 'DiscStress_MPa_', 'DiscStrain', 'state', 'tail' ,'disc_id', 'disc_index', 'group_id', 'run_id'});
+    data_array = get_array_of_tables(files);
     
-    progress_bar = waitbar(0, "Loading data files");
-    for file_index = 1:length(files)
-        progress = file_index / length(files);
-        waitbar(progress, progress_bar, "Loading data files")
-        disc_data = load_file(files(file_index));
-        data = [data; disc_data]; 
-    end
-    close(progress_bar);
+    data = vertcat(data_array{:});
+
     data.state = categorical(data.state);
     data.tail= categorical(data.tail);
     data.disc_id = categorical(data.disc_id);
     data.disc_index = categorical(data.disc_index);
     data.group_id = categorical(data.group_id);
     data.run_id = categorical(data.run_id);
+
+    data = renamevars(data, ["Delta h (mm)", "Derived disc height (mm)", "Disc strain", "Disc stress (MPa)", "Displacement(Linear (10.0.0.2 : 0):Digital Position) (mm)", "Load(Linear (10.0.0.2 : 0):Load) (N)", "Position(Linear (10.0.0.2 : 0):Position) (mm)", "Specimen height (mm)", "Total Cycles", "Total time (hrs)"], ["delta_height", "derived_height", "disc_strain", "disc_stress", "displacement_linear", "load_linear", "position_linear", "specimen_height", "total_cycles", "time"]);
+end
+
+function data_array = get_array_of_tables(files)
+    data_array = cell(1, length(files));
+
+    progress_bar = waitbar(0, "Loading data files");
+    for file_index = 1:length(files)
+        progress = file_index / length(files);
+        waitbar(progress, progress_bar, "Loading data files")
+        disc_data = load_file(files(file_index));
+        data_array{file_index} = disc_data; 
+    end
+    close(progress_bar);
 end
 
 function disc_data = load_file(file)
         disc_info = process_filename(file.name);
-        disc_data = readtable(strcat(file.folder + "\" + file.name));
+        disc_data = readtable(strcat(file.folder + "\" + file.name), VariableNamingRule="preserve");
         disc_data.("tail") = repmat(disc_info(1), size(disc_data,1), 1);
         disc_data.("state") = repmat(disc_info(2), size(disc_data,1), 1);
         disc_data.("disc_id") = repmat(disc_info(3), size(disc_data,1), 1);
